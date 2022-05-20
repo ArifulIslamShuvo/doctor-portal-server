@@ -19,8 +19,9 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         await client.connect();
-        const serviceCollection = client.db('doctors_portal').collection('services')
-        const bookingCollection = client.db('doctors_portal').collection('bookings')
+        const serviceCollection = client.db('doctors_portal').collection('services');
+        const bookingCollection = client.db('doctors_portal').collection('bookings');
+        const userCollection = client.db('doctors_portal').collection('users');
 
         //http://localhost:5000/service
         app.get('/service', async (req, res) => {
@@ -29,6 +30,18 @@ async function run() {
             const services = await cursor.toArray();
             res.send(services);
         });
+        // user api 
+        app.put('user/:email', async(req, res) => {
+            const filter = {email : email};
+            const user = req.body;
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+              };
+
+              const result = await userCollection.updateOne(filter, updateDoc, options);
+              res.send(result);
+        })
 
         //warning: 
         // This is not proper way to query.
@@ -66,6 +79,7 @@ async function run() {
      * app.get('/booking/:id') // get a specific booking 
      * app.post('/booking') // add a new booking
      * app.patch('/booking/:id) //
+     * app.put('/booking/:id') // upsert ==> update(if exists), or insert(if dosen't exist )
      * app.delete('/booking/:id) //
     */
         app.get('/booking', async (req, res) => {

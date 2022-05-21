@@ -8,7 +8,6 @@ const port = process.env.PORT || 5000;
 const app = express();
 
 //middleware 
-
 app.use(cors());
 app.use(express.json());
 
@@ -32,7 +31,6 @@ function verifyJWT(req, res, next) {
     });
 }
 
-
 async function run() {
     try {
         await client.connect();
@@ -47,6 +45,40 @@ async function run() {
             const services = await cursor.toArray();
             res.send(services);
         });
+
+        app.get('/user', verifyJWT, async (req, res) => {
+            const users = await userCollection.find().toArray();
+            res.send(users);
+        })
+        //---------get-admin- user
+        app.get('/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = await userCollection.findOne({email: email});
+            const isAdmin = user.role === 'admin';
+            res.send({admin: isAdmin});
+            
+        })
+
+        // admin
+        app.put('/user/admin/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            const requester = req.decoded.email;
+            const requesterAccount = await userCollection.find({ email: requester })
+            if (requesterAccount.role === 'admin') {
+
+                const filter = { email: email };
+                const updateDoc = {
+                    $set: { role: 'admin' },
+                };
+                const result = await userCollection.updateOne(filter, updateDoc);
+                res.send(result);
+            }
+            else{
+                return res.status(403).send({ message: 'Forbidden' });
+            }
+        })
+
+
         // user api 
         app.put('/user/:email', async (req, res) => {
             const email = req.params.email;
@@ -109,7 +141,7 @@ async function run() {
                 const bookings = await bookingCollection.find(query).toArray();
                 return res.send(bookings);
             }
-            else{
+            else {
                 return res.status(403).send({ message: 'Forbidden access' });
             }
         });
